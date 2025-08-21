@@ -44,7 +44,7 @@ const InventoryManager: React.FC<InventoryManagerProps> = ({
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
-  const cleanInventory = useMemo(() => (inventory || []).filter(Boolean), [inventory]);
+  const cleanInventory = useMemo(() => (inventory || []).filter(item => item && typeof item === 'object'), [inventory]);
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();

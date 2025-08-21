@@ -18,7 +18,7 @@ const App: React.FC = () => {
   });
   const [isInventoryFullScreen, setIsInventoryFullScreen] = useState(false);
 
-  // Effect for data migrations
+  // Effect for data migrations and sanitization
   useEffect(() => {
     setAppData(currentData => {
       let needsUpdate = false;
@@ -33,11 +33,18 @@ const App: React.FC = () => {
             : [];
       }
 
-      // 2. Migrate inventory items to include a unique ID if they don't have one
-      const inventoryNeedsMigration = migratedData.inventory.some(item => !item.id);
-      if (inventoryNeedsMigration) {
+      // 2. Sanitize and migrate inventory items
+      const originalInventory = migratedData.inventory || [];
+      // Remove any null, undefined, or otherwise falsy values from the inventory
+      const sanitizedInventory = originalInventory.filter(Boolean);
+
+      // Check if any valid items are missing a unique ID
+      const inventoryNeedsMigration = sanitizedInventory.some(item => !item.id);
+      
+      // An update is needed if we filtered out invalid items or if any item needs an ID
+      if (sanitizedInventory.length < originalInventory.length || inventoryNeedsMigration) {
         needsUpdate = true;
-        migratedData.inventory = migratedData.inventory.map((item, index) => ({
+        migratedData.inventory = sanitizedInventory.map((item, index) => ({
             ...item,
             id: item.id || `migrated-${Date.now()}-${index}`
         }));

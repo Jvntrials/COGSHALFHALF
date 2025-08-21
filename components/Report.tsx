@@ -79,7 +79,7 @@ const Report: React.FC<ReportProps> = ({ data }) => {
     const totalPurchases = filteredPurchases.reduce((acc, p) => acc + p.cost, 0);
     const totalSales = filteredSales.reduce((acc, s) => acc + s.revenue, 0);
     
-    const inventoryValue = data.inventory.reduce((acc, item) => {
+    const inventoryValue = (data.inventory || []).filter(Boolean).reduce((acc, item) => {
       const quantity = parseFloat(String(item.quantity)) || 0;
       const costPerUnit = parseFloat(String(item.costPerUnit)) || 0;
       return acc + (quantity * costPerUnit);

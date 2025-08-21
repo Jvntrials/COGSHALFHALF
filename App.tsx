@@ -18,15 +18,16 @@ const App: React.FC = () => {
   });
   const [isInventoryFullScreen, setIsInventoryFullScreen] = useState(false);
 
-  // Proactively sanitize data on every render to prevent crashes from corrupted local storage data
-  // before the migration useEffect can run.
+  // Proactively sanitize data on every render to prevent crashes.
+  // This uses a stricter filter to ensure all items in arrays are valid objects.
   const sanitizedAppData: AppData = useMemo(() => {
+    const isValidObject = (item: unknown): item is object => item && typeof item === 'object';
     return {
       rent: appData.rent || 0,
-      inventory: (Array.isArray(appData.inventory) ? appData.inventory : []).filter(Boolean),
-      purchases: (Array.isArray(appData.purchases) ? appData.purchases : []).filter(Boolean),
-      sales: (Array.isArray(appData.sales) ? appData.sales : []).filter(Boolean),
-      otherExpenses: (Array.isArray(appData.otherExpenses) ? appData.otherExpenses : []).filter(Boolean),
+      inventory: (Array.isArray(appData.inventory) ? appData.inventory : []).filter(isValidObject),
+      purchases: (Array.isArray(appData.purchases) ? appData.purchases : []).filter(isValidObject),
+      sales: (Array.isArray(appData.sales) ? appData.sales : []).filter(isValidObject),
+      otherExpenses: (Array.isArray(appData.otherExpenses) ? appData.otherExpenses : []).filter(isValidObject),
     };
   }, [appData]);
 
@@ -35,18 +36,19 @@ const App: React.FC = () => {
     setAppData(currentData => {
       let needsUpdate = false;
       let migratedData: AppData = JSON.parse(JSON.stringify(currentData)); // Deep copy for safe mutation
+      const isValidObject = (item: unknown): item is object => item && typeof item === 'object';
 
-      // 1. Sanitize all major arrays by filtering out null/falsy values
+      // 1. Sanitize all major arrays by filtering out invalid entries (null, primitives, etc.)
       (['inventory', 'purchases', 'sales', 'otherExpenses'] as const).forEach(key => {
         const originalArray = (migratedData as any)[key];
         if (Array.isArray(originalArray)) {
-            const sanitizedArray = originalArray.filter(Boolean);
+            const sanitizedArray = originalArray.filter(isValidObject);
             if (sanitizedArray.length < originalArray.length) {
                 (migratedData as any)[key] = sanitizedArray;
                 needsUpdate = true;
             }
         } else {
-            // Handle corrupted data that isn't an array (e.g., was a number)
+            // Handle corrupted data that isn't an array
             (migratedData as any)[key] = [];
             needsUpdate = true;
         }

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { Sale } from '../types';
 import Card from './ui/Card';
 import Button from './ui/Button';
@@ -6,37 +7,39 @@ import Input from './ui/Input';
 
 interface SalesHistoryProps {
   sales: Sale[];
-  onUpdateSale: (sale: Sale, index: number) => void;
-  onDeleteSale: (index: number) => void;
+  onUpdateSale: (sale: Sale) => void;
+  onDeleteSale: (saleId: string) => void;
 }
 
 const SalesHistory: React.FC<SalesHistoryProps> = ({ sales, onUpdateSale, onDeleteSale }) => {
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingSaleId, setEditingSaleId] = useState<string | null>(null);
   const [editedSale, setEditedSale] = useState<Sale | null>(null);
-  const [saleToDelete, setSaleToDelete] = useState<number | null>(null);
+  const [saleToDeleteId, setSaleToDeleteId] = useState<string | null>(null);
 
-  const handleEditClick = (sale: Sale, index: number) => {
-    setEditingIndex(index);
+  const cleanSales = useMemo(() => (sales || []).filter(Boolean), [sales]);
+
+  const handleEditClick = (sale: Sale) => {
+    setEditingSaleId(sale.id);
     setEditedSale({ ...sale });
-    setSaleToDelete(null);
+    setSaleToDeleteId(null);
   };
 
   const handleSaveClick = () => {
-    if (editedSale && editingIndex !== null) {
+    if (editedSale && editingSaleId !== null) {
       const saleToSave: Sale = {
           ...editedSale,
           revenue: parseFloat(String(editedSale.revenue)) || 0,
       };
-      onUpdateSale(saleToSave, editingIndex);
-      setEditingIndex(null);
+      onUpdateSale(saleToSave);
+      setEditingSaleId(null);
       setEditedSale(null);
     }
   };
 
   const handleCancelClick = () => {
-    setEditingIndex(null);
+    setEditingSaleId(null);
     setEditedSale(null);
-    setSaleToDelete(null);
+    setSaleToDeleteId(null);
   };
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,11 +52,11 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ sales, onUpdateSale, onDele
     }
   };
   
-  const handleConfirmDelete = (index: number) => {
-    onDeleteSale(index);
-    setEditingIndex(null);
+  const handleConfirmDelete = (saleId: string) => {
+    onDeleteSale(saleId);
+    setEditingSaleId(null);
     setEditedSale(null);
-    setSaleToDelete(null);
+    setSaleToDeleteId(null);
   };
 
   return (
@@ -71,19 +74,17 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ sales, onUpdateSale, onDele
             </tr>
           </thead>
           <tbody>
-            {sales.length > 0 ? (
-              sales.slice().reverse().map((sale, reversedIndex) => {
-                const index = sales.length - 1 - reversedIndex;
-                return (
-                <tr key={index} className="border-b border-gray-800">
-                   {editingIndex === index ? (
-                     saleToDelete === index ? (
+            {cleanSales.length > 0 ? (
+              cleanSales.slice().sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime()).map((sale) => (
+                <tr key={sale.id} className="border-b border-gray-800">
+                   {editingSaleId === sale.id ? (
+                     saleToDeleteId === sale.id ? (
                       <>
                          <td className="p-2 font-medium text-red-400" colSpan={2}>Are you sure?</td>
                          <td className="p-2 text-center">
                              <div className="flex gap-2 justify-center items-center">
-                                 <Button onClick={() => handleConfirmDelete(index)} className="bg-red-600 hover:bg-red-700 text-xs py-1 px-2">Confirm</Button>
-                                 <Button onClick={() => setSaleToDelete(null)} className="bg-gray-600 hover:bg-gray-700 text-xs py-1 px-2">Cancel</Button>
+                                 <Button onClick={() => handleConfirmDelete(sale.id)} className="bg-red-600 hover:bg-red-700 text-xs py-1 px-2">Confirm</Button>
+                                 <Button onClick={() => setSaleToDeleteId(null)} className="bg-gray-600 hover:bg-gray-700 text-xs py-1 px-2">Cancel</Button>
                              </div>
                          </td>
                       </>
@@ -110,7 +111,7 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ sales, onUpdateSale, onDele
                         <td className="p-2 text-center">
                           <div className="flex gap-3 justify-center items-center">
                             <button onClick={handleSaveClick} className="text-green-400 hover:text-green-300 text-xl font-bold">✓</button>
-                            <button onClick={() => setSaleToDelete(index)} className="text-red-500 hover:text-red-400 text-xl">🗑️</button>
+                            <button onClick={() => setSaleToDeleteId(sale.id)} className="text-red-500 hover:text-red-400 text-xl">🗑️</button>
                             <button onClick={handleCancelClick} className="text-red-400 hover:text-red-300 text-xl font-bold">✗</button>
                           </div>
                         </td>
@@ -124,13 +125,13 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ sales, onUpdateSale, onDele
                       <td className="p-2 text-right">₱{(parseFloat(String(sale.revenue)) || 0).toFixed(2)}</td>
                       <td className="p-2 text-center">
                           <div className="flex gap-3 justify-center">
-                              <button onClick={() => handleEditClick(sale, index)} className="text-primary hover:text-accent">✏️</button>
+                              <button onClick={() => handleEditClick(sale)} className="text-primary hover:text-accent">✏️</button>
                           </div>
                       </td>
                     </>
                   )}
                 </tr>
-              )})
+              ))
             ) : (
               <tr>
                 <td colSpan={3} className="p-4 text-center text-gray-400">

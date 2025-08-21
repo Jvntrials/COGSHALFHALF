@@ -75,7 +75,7 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ sales, onUpdateSale, onDele
           </thead>
           <tbody>
             {cleanSales.length > 0 ? (
-              cleanSales.slice().sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime()).map((sale) => (
+              cleanSales.slice().sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()).map((sale) => (
                 <tr key={sale.id} className="border-b border-gray-800">
                    {editingSaleId === sale.id ? (
                      saleToDeleteId === sale.id ? (

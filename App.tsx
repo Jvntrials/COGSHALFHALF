@@ -1,5 +1,5 @@
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { AppData, Purchase, Sale, InventoryItem, Expense } from './types';
 import InventoryManager from './components/InventoryManager';
@@ -18,30 +18,42 @@ const App: React.FC = () => {
   });
   const [isInventoryFullScreen, setIsInventoryFullScreen] = useState(false);
 
-  // Effect for data migrations and sanitization
+  // Proactively sanitize data on every render to prevent crashes from corrupted local storage data
+  // before the migration useEffect can run.
+  const sanitizedAppData: AppData = useMemo(() => {
+    return {
+      rent: appData.rent || 0,
+      inventory: (Array.isArray(appData.inventory) ? appData.inventory : []).filter(Boolean),
+      purchases: (Array.isArray(appData.purchases) ? appData.purchases : []).filter(Boolean),
+      sales: (Array.isArray(appData.sales) ? appData.sales : []).filter(Boolean),
+      otherExpenses: (Array.isArray(appData.otherExpenses) ? appData.otherExpenses : []).filter(Boolean),
+    };
+  }, [appData]);
+
+  // Effect for data migrations and persisting sanitization
   useEffect(() => {
     setAppData(currentData => {
       let needsUpdate = false;
-      let migratedData = JSON.parse(JSON.stringify(currentData)); // Deep copy for safe mutation
+      let migratedData: AppData = JSON.parse(JSON.stringify(currentData)); // Deep copy for safe mutation
 
       // 1. Sanitize all major arrays by filtering out null/falsy values
       (['inventory', 'purchases', 'sales', 'otherExpenses'] as const).forEach(key => {
-        const originalArray = migratedData[key] || [];
+        const originalArray = (migratedData as any)[key];
         if (Array.isArray(originalArray)) {
             const sanitizedArray = originalArray.filter(Boolean);
             if (sanitizedArray.length < originalArray.length) {
-                migratedData[key] = sanitizedArray;
+                (migratedData as any)[key] = sanitizedArray;
                 needsUpdate = true;
             }
         } else {
             // Handle corrupted data that isn't an array (e.g., was a number)
-            migratedData[key] = [];
+            (migratedData as any)[key] = [];
             needsUpdate = true;
         }
       });
       
       // 2. Migrate inventory items to have IDs
-      if (migratedData.inventory.some((item: InventoryItem) => !item.id)) {
+      if (Array.isArray(migratedData.inventory) && migratedData.inventory.some((item: InventoryItem) => !item.id)) {
         needsUpdate = true;
         migratedData.inventory = migratedData.inventory.map((item: InventoryItem, index: number) => ({
             ...item,
@@ -50,7 +62,7 @@ const App: React.FC = () => {
       }
 
       // 3. Migrate sales to have IDs for robust editing/deleting
-      if (migratedData.sales.some((sale: Sale) => !sale.id)) {
+      if (Array.isArray(migratedData.sales) && migratedData.sales.some((sale: Sale) => !sale.id)) {
         needsUpdate = true;
         migratedData.sales = migratedData.sales.map((sale: Sale, index: number) => ({
             ...sale,
@@ -183,26 +195,26 @@ const App: React.FC = () => {
         <main className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {!isInventoryFullScreen && (
             <div className="lg:col-span-2 space-y-6">
-              <TransactionManager onAddPurchase={handleAddPurchase} onAddSale={handleAddSale} inventory={appData.inventory} />
-              <Report data={appData} />
+              <TransactionManager onAddPurchase={handleAddPurchase} onAddSale={handleAddSale} inventory={sanitizedAppData.inventory} />
+              <Report data={sanitizedAppData} />
               <SalesHistory 
-                sales={appData.sales} 
+                sales={sanitizedAppData.sales} 
                 onUpdateSale={handleUpdateSale}
                 onDeleteSale={handleDeleteSale}
               />
-              <DataManager appData={appData} onImportData={setAppData} />
+              <DataManager appData={sanitizedAppData} onImportData={setAppData} />
             </div>
           )}
 
           <div className={isInventoryFullScreen ? "lg:col-span-3" : ""}>
             <InventoryManager 
-              inventory={appData.inventory} 
+              inventory={sanitizedAppData.inventory} 
               onAddInventory={handleAddInventory} 
               onSetRent={handleSetRent} 
               currentRent={appData.rent}
               onAddExpense={handleAddExpense}
               onDeleteExpense={handleDeleteExpense}
-              currentOtherExpenses={appData.otherExpenses}
+              currentOtherExpenses={sanitizedAppData.otherExpenses}
               onUpdateInventoryItem={handleUpdateInventoryItem}
               onDeleteInventoryItem={handleDeleteInventoryItem}
               isFullScreen={isInventoryFullScreen}

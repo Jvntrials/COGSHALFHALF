@@ -16,7 +16,7 @@ const SalesHistory: React.FC<SalesHistoryProps> = ({ sales, onUpdateSale, onDele
   const [editedSale, setEditedSale] = useState<Sale | null>(null);
   const [saleToDeleteId, setSaleToDeleteId] = useState<string | null>(null);
 
-  const cleanSales = useMemo(() => (sales || []).filter(Boolean), [sales]);
+  const cleanSales = useMemo(() => (sales || []).filter(item => item && typeof item === 'object'), [sales]);
 
   const handleEditClick = (sale: Sale) => {
     setEditingSaleId(sale.id);

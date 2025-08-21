@@ -15,6 +15,7 @@ export interface Purchase {
 }
 
 export interface Sale {
+  id: string;
   item: string;
   quantity: number;
   revenue: number;

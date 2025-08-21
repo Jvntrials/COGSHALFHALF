@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { InventoryItem, Expense } from '../types';
 import Card from './ui/Card';
 import Button from './ui/Button';
@@ -44,6 +44,7 @@ const InventoryManager: React.FC<InventoryManagerProps> = ({
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
+  const cleanInventory = useMemo(() => (inventory || []).filter(Boolean), [inventory]);
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -244,8 +245,8 @@ const InventoryManager: React.FC<InventoryManagerProps> = ({
               </tr>
             </thead>
             <tbody>
-              {inventory.length > 0 ? (
-                inventory.slice().sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime()).map((item) => (
+              {cleanInventory.length > 0 ? (
+                cleanInventory.slice().sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime()).map((item) => (
                   <tr key={item.id} className="border-b border-gray-800">
                      {editingItem?.id === item.id ? (
                        itemToDelete === item.id ? (

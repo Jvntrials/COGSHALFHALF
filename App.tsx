@@ -22,31 +22,39 @@ const App: React.FC = () => {
   useEffect(() => {
     setAppData(currentData => {
       let needsUpdate = false;
-      let migratedData = { ...currentData };
+      let migratedData = JSON.parse(JSON.stringify(currentData)); // Deep copy for safe mutation
 
-      // 1. Migrate legacy `otherExpenses` (number) to the new structure (array of objects)
-      if (typeof (migratedData as any).otherExpenses === 'number') {
+      // 1. Sanitize all major arrays by filtering out null/falsy values
+      (['inventory', 'purchases', 'sales', 'otherExpenses'] as const).forEach(key => {
+        const originalArray = migratedData[key] || [];
+        if (Array.isArray(originalArray)) {
+            const sanitizedArray = originalArray.filter(Boolean);
+            if (sanitizedArray.length < originalArray.length) {
+                migratedData[key] = sanitizedArray;
+                needsUpdate = true;
+            }
+        } else {
+            // Handle corrupted data that isn't an array (e.g., was a number)
+            migratedData[key] = [];
+            needsUpdate = true;
+        }
+      });
+      
+      // 2. Migrate inventory items to have IDs
+      if (migratedData.inventory.some((item: InventoryItem) => !item.id)) {
         needsUpdate = true;
-        const legacyAmount = (migratedData as any).otherExpenses as number;
-        migratedData.otherExpenses = legacyAmount > 0 
-            ? [{ name: 'Legacy Other Expenses', amount: legacyAmount }] 
-            : [];
+        migratedData.inventory = migratedData.inventory.map((item: InventoryItem, index: number) => ({
+            ...item,
+            id: item.id || `migrated-inv-${Date.now()}-${index}`
+        }));
       }
 
-      // 2. Sanitize and migrate inventory items
-      const originalInventory = migratedData.inventory || [];
-      // Remove any null, undefined, or otherwise falsy values from the inventory
-      const sanitizedInventory = originalInventory.filter(Boolean);
-
-      // Check if any valid items are missing a unique ID
-      const inventoryNeedsMigration = sanitizedInventory.some(item => !item.id);
-      
-      // An update is needed if we filtered out invalid items or if any item needs an ID
-      if (sanitizedInventory.length < originalInventory.length || inventoryNeedsMigration) {
+      // 3. Migrate sales to have IDs for robust editing/deleting
+      if (migratedData.sales.some((sale: Sale) => !sale.id)) {
         needsUpdate = true;
-        migratedData.inventory = sanitizedInventory.map((item, index) => ({
-            ...item,
-            id: item.id || `migrated-${Date.now()}-${index}`
+        migratedData.sales = migratedData.sales.map((sale: Sale, index: number) => ({
+            ...sale,
+            id: sale.id || `migrated-sale-${Date.now()}-${index}`
         }));
       }
 
@@ -75,29 +83,33 @@ const App: React.FC = () => {
     });
   }, [setAppData]);
 
-  const handleAddSale = useCallback((sale: Sale) => {
+  const handleAddSale = useCallback((sale: Omit<Sale, 'id'>) => {
     setAppData(prevData => {
-      const saleWithDate = { ...sale, date: sale.date || new Date().toISOString() };
+      const saleWithDateAndId: Sale = {
+        ...sale,
+        id: `sale-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        date: sale.date || new Date().toISOString(),
+      };
       return {
         ...prevData,
-        sales: [...prevData.sales, saleWithDate],
+        sales: [...prevData.sales, saleWithDateAndId],
       };
     });
   }, [setAppData]);
 
-  const handleUpdateSale = useCallback((updatedSale: Sale, index: number) => {
+  const handleUpdateSale = useCallback((updatedSale: Sale) => {
     setAppData(prevData => ({
       ...prevData,
-      sales: prevData.sales.map((sale, i) =>
-        i === index ? updatedSale : sale
+      sales: prevData.sales.map((sale) =>
+        sale.id === updatedSale.id ? updatedSale : sale
       ),
     }));
   }, [setAppData]);
 
-  const handleDeleteSale = useCallback((index: number) => {
+  const handleDeleteSale = useCallback((saleId: string) => {
     setAppData(prevData => ({
       ...prevData,
-      sales: prevData.sales.filter((_, i) => i !== index),
+      sales: prevData.sales.filter((sale) => sale.id !== saleId),
     }));
   }, [setAppData]);
 

@@ -44,7 +44,7 @@ const Report: React.FC<ReportProps> = ({ data }) => {
     const getMonthStart = () => new Date(now.getFullYear(), now.getMonth(), 1).getTime();
 
     const filterByTimeframe = (transaction: { date?: string }) => {
-        if (!transaction.date) {
+        if (!transaction?.date) {
             return timeframe === 'all';
         }
         const transactionDate = new Date(transaction.date);
@@ -61,8 +61,8 @@ const Report: React.FC<ReportProps> = ({ data }) => {
         }
     };
 
-    const filteredPurchases = data.purchases.filter(filterByTimeframe);
-    const filteredSales = data.sales.filter(filterByTimeframe);
+    const filteredPurchases = (data.purchases || []).filter(Boolean).filter(filterByTimeframe);
+    const filteredSales = (data.sales || []).filter(Boolean).filter(filterByTimeframe);
 
     let rent = data.rent;
     const totalOtherExpenses = (data.otherExpenses || []).reduce((acc, expense) => acc + expense.amount, 0);

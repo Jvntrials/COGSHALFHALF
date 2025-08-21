@@ -246,7 +246,7 @@ const InventoryManager: React.FC<InventoryManagerProps> = ({
             </thead>
             <tbody>
               {cleanInventory.length > 0 ? (
-                cleanInventory.slice().sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime()).map((item) => (
+                cleanInventory.slice().sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()).map((item) => (
                   <tr key={item.id} className="border-b border-gray-800">
                      {editingItem?.id === item.id ? (
                        itemToDelete === item.id ? (

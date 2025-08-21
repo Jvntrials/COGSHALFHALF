@@ -31,6 +31,7 @@ const Report: React.FC<ReportProps> = ({ data }) => {
 
   const { analysis, chartData, chartTitle } = useMemo(() => {
     const now = currentTime;
+    const isValidObject = (item: unknown): item is object => item && typeof item === 'object';
     
     const getTodayStart = () => new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     
@@ -61,8 +62,8 @@ const Report: React.FC<ReportProps> = ({ data }) => {
         }
     };
 
-    const filteredPurchases = (data.purchases || []).filter(Boolean).filter(filterByTimeframe);
-    const filteredSales = (data.sales || []).filter(Boolean).filter(filterByTimeframe);
+    const filteredPurchases = (data.purchases || []).filter(isValidObject).filter(filterByTimeframe);
+    const filteredSales = (data.sales || []).filter(isValidObject).filter(filterByTimeframe);
 
     let rent = data.rent;
     const totalOtherExpenses = (data.otherExpenses || []).reduce((acc, expense) => acc + expense.amount, 0);
@@ -79,7 +80,7 @@ const Report: React.FC<ReportProps> = ({ data }) => {
     const totalPurchases = filteredPurchases.reduce((acc, p) => acc + p.cost, 0);
     const totalSales = filteredSales.reduce((acc, s) => acc + s.revenue, 0);
     
-    const inventoryValue = (data.inventory || []).filter(Boolean).reduce((acc, item) => {
+    const inventoryValue = (data.inventory || []).filter(isValidObject).reduce((acc, item) => {
       const quantity = parseFloat(String(item.quantity)) || 0;
       const costPerUnit = parseFloat(String(item.costPerUnit)) || 0;
       return acc + (quantity * costPerUnit);

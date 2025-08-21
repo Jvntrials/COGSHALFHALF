@@ -34,7 +34,7 @@ const TransactionManager: React.FC<TransactionManagerProps> = ({ onAddPurchase, 
     });
 
     // Add/update with items from current inventory (manually added ones)
-    inventory.forEach(item => {
+    (inventory || []).filter(Boolean).forEach(item => {
       const cost = parseFloat(String(item.costPerUnit)) || 0;
       itemsMap.set(item.item, { 
         costPerUnit: cost, 

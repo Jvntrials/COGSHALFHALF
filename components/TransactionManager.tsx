@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Purchase, Sale, InventoryItem } from '../types';
 import { CONSTANT_INVENTORY } from '../constants';
@@ -8,7 +7,7 @@ import Input from './ui/Input';
 
 interface TransactionManagerProps {
   onAddPurchase: (purchase: Purchase) => void;
-  onAddSale: (sale: Sale) => void;
+  onAddSale: (sale: Omit<Sale, 'id'>) => void;
   inventory: InventoryItem[];
 }
 
